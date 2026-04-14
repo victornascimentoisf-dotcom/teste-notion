@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Régua de Cobrança — Nagro</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f7f6f3; color: #37352f; font-size: 14px; padding: 16px; }
+
+  h1 { font-size: 17px; font-weight: 600; color: #1a1a1a; margin-bottom: 4px; }
+  .subtitle { font-size: 12px; color: #9b9a97; margin-bottom: 14px; }
+
+  .tabs { display: flex; gap: 3px; margin-bottom: 14px; flex-wrap: wrap; }
+  .tab { padding: 6px 12px; font-size: 12px; font-weight: 500; cursor: pointer; border-radius: 6px; background: #ebebea; color: #6b6b6b; border: none; transition: all .15s; }
+  .tab.active { background: #2383e2; color: #fff; }
+  .tab:hover:not(.active) { background: #e0dfdc; }
+
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  /* Pipeline */
+  .pipeline { display: flex; flex-wrap: wrap; gap: 6px; }
+  .stage { flex: 1; min-width: 120px; background: #fff; border: 1px solid #e5e4e0; border-radius: 8px; padding: 10px; }
+  .stage-dot { width: 8px; height: 8px; border-radius: 50%; margin-bottom: 6px; }
+  .stage-name { font-size: 12px; font-weight: 600; color: #1a1a1a; margin-bottom: 3px; }
+  .stage-sub { font-size: 11px; color: #9b9a97; line-height: 1.4; }
+  .stage-arrow { display: flex; align-items: center; color: #c4c2bb; font-size: 16px; padding-top: 14px; flex: 0 0 auto; }
+
+  /* Timeline */
+  .tl { position: relative; padding-left: 26px; }
+  .tl::before { content: ''; position: absolute; left: 9px; top: 4px; bottom: 4px; width: 1px; background: #e5e4e0; }
+  .tl-item { position: relative; margin-bottom: 8px; }
+  .tl-dot { position: absolute; left: -20px; top: 5px; width: 9px; height: 9px; border-radius: 50%; border: 1.5px solid; }
+  .tl-day { font-size: 11px; font-weight: 600; margin-bottom: 2px; }
+  .tl-card { background: #fff; border: 1px solid #e5e4e0; border-radius: 6px; padding: 7px 10px; }
+  .tl-title { font-size: 12px; font-weight: 600; color: #1a1a1a; margin-bottom: 2px; }
+  .tl-desc { font-size: 11px; color: #6b6b6b; line-height: 1.5; }
+  .tl-badge { display: inline-block; font-size: 10px; padding: 1px 7px; border-radius: 20px; margin-top: 4px; font-weight: 500; }
+  .badge-auto   { background: #dbeafe; color: #1e40af; }
+  .badge-human  { background: #fef3c7; color: #92400e; }
+  .badge-legal  { background: #fee2e2; color: #991b1b; }
+  .badge-credit { background: #dcfce7; color: #14532d; }
+
+  .phase-header { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: #9b9a97; margin: 12px 0 5px; padding-bottom: 3px; border-bottom: 1px solid #f0eeea; }
+
+  /* Properties */
+  .props-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
+  .prop-card { background: #fff; border: 1px solid #e5e4e0; border-radius: 6px; padding: 8px 10px; }
+  .prop-name { font-size: 12px; font-weight: 600; color: #1a1a1a; margin-bottom: 1px; }
+  .prop-type { font-size: 10px; color: #9b9a97; margin-bottom: 3px; }
+  .prop-desc { font-size: 11px; color: #6b6b6b; line-height: 1.4; }
+  .section-title { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: #9b9a97; margin: 12px 0 5px; }
+
+  /* Integrations */
+  .int-row { display: flex; align-items: flex-start; gap: 10px; padding: 9px 0; border-bottom: 1px solid #f0eeea; }
+  .int-row:last-child { border-bottom: none; }
+  .int-icon { width: 28px; height: 28px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; }
+  .int-name { font-size: 12px; font-weight: 600; color: #1a1a1a; }
+  .int-desc { font-size: 11px; color: #6b6b6b; line-height: 1.4; margin-top: 1px; }
+  .int-status { font-size: 10px; padding: 2px 7px; border-radius: 20px; margin-top: 3px; display: inline-block; font-weight: 500; }
+  .status-ok      { background: #dcfce7; color: #14532d; }
+  .status-pending { background: #fef3c7; color: #92400e; }
+
+  .legend { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+  .legend-item { display: flex; align-items: center; gap: 4px; font-size: 11px; color: #6b6b6b; }
+  .legend-dot { width: 8px; height: 8px; border-radius: 50%; }
+
+  .info-box { background: #f0f7ff; border: 1px solid #bfdbfe; border-radius: 6px; padding: 9px 11px; font-size: 11px; color: #1e40af; line-height: 1.6; margin-top: 10px; }
+
+  @media (max-width: 480px) {
+    .props-grid { grid-template-columns: 1fr; }
+    .pipeline { flex-direction: column; }
+    .stage-arrow { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<h1>Régua de Cobrança — Nagro</h1>
+<p class="subtitle">Operacionalização no HubSpot · Crédito · Cobrança · Jurídico · Comercial</p>
+
+<div class="tabs">
+  <button class="tab active" onclick="show('pipeline', this)">Pipeline</button>
+  <button class="tab" onclick="show('fluxo1', this)">Fluxo 1 — CCBs</button>
+  <button class="tab" onclick="show('fluxo2', this)">Fluxo 2 — Estruturadas</button>
+  <button class="tab" onclick="show('props', this)">Propriedades</button>
+  <button class="tab" onclick="show('integracoes', this)">Integrações</button>
+</div>
+
+<!-- PIPELINE -->
+<div id="panel-pipeline" class="panel active">
+  <p style="font-size:11px;color:#9b9a97;margin-bottom:10px">Pipeline dedicado à inadimplência. Separado do pipeline comercial. Deals entram no primeiro vencimento não pago.</p>
+  <div class="pipeline">
+    <div class="stage"><div class="stage-dot" style="background:#3b82f6"></div><div class="stage-name">Preventivo</div><div class="stage-sub">D-50 a D0 · Automações e comercial</div></div>
+    <div class="stage-arrow">›</div>
+    <div class="stage"><div class="stage-dot" style="background:#f59e0b"></div><div class="stage-name">Cobrança Inicial</div><div class="stage-sub">D+1 a D+30 · Negociadora ativa</div></div>
+    <div class="stage-arrow">›</div>
+    <div class="stage"><div class="stage-dot" style="background:#f97316"></div><div class="stage-name">Cobrança Inter.</div><div class="stage-sub">D+31 a D+90 · Especializadas</div></div>
+    <div class="stage-arrow">›</div>
+    <div class="stage"><div class="stage-dot" style="background:#ef4444"></div><div class="stage-name">Extrajudicial</div><div class="stage-sub">D+91 a D+120 · Jurídico</div></div>
+    <div class="stage-arrow">›</div>
+    <div class="stage"><div class="stage-dot" style="background:#8b5cf6"></div><div class="stage-name">Análise Comitê</div><div class="stage-sub">D+121 a D+160 · Decisão</div></div>
+    <div class="stage-arrow">›</div>
+    <div class="stage"><div class="stage-dot" style="background:#6b7280"></div><div class="stage-name">Renegociação</div><div class="stage-sub">D+240 · Novo fluxo</div></div>
+  </div>
+  <div class="info-box">A propriedade <strong>"Tipo de operação"</strong> (CCB / Estruturada) define qual fluxo disparar. Contratos com vencimento anterior a dezembro/2024 devem ser marcados como <strong>legado</strong> e excluídos dos workflows.</div>
+</div>
+
+<!-- FLUXO 1 -->
+<div id="panel-fluxo1" class="panel">
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:#1e40af"></div>Automação</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#92400e"></div>Ação humana</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#991b1b"></div>Jurídico</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#14532d"></div>Crédito</div>
+  </div>
+
+  <div class="phase-header">Preventivo</div>
+  <div class="tl">
+    <div class="tl-item"><div class="tl-dot" style="background:#dbeafe;border-color:#3b82f6"></div><div class="tl-day" style="color:#1e40af">D-10</div><div class="tl-card"><div class="tl-title">E-mail automático com boleto</div><div class="tl-desc">Workflow disparado por data de vencimento do deal</div><span class="tl-badge badge-auto">Workflow</span></div></div>
+    <div class="tl-item"><div class="tl-dot" style="background:#dbeafe;border-color:#3b82f6"></div><div class="tl-day" style="color:#1e40af">D-7</div><div class="tl-card"><div class="tl-title">WhatsApp lembrete</div><div class="tl-desc">Integração via Zenvia/Notificame — template aprovado no Meta</div><span class="tl-badge badge-auto">Workflow</span></div></div>
+    <div class="tl-item"><div class="tl-dot" style="background:#fef3c7;border-color:#f59e0b"></div><div class="tl-day" style="color:#92400e">D0</div><div class="tl-card"><div class="tl-title">WhatsApp + ação humana (Oikos)</div><div class="tl-desc">Task criada automaticamente para a negociadora responsável</div><span class="tl-badge badge-human">Task criada</span></div></div>
+  </div>
+
+  <div class="phase-header">Cobrança inicial (D+1 a D+30)</div>
+  <div class="tl">
+    <div class="tl-item"><div class="tl-dot" style="background:#fef3c7;border-color:#f59e0b"></div><div class="tl-day" style="color:#92400e">D+1 ao D+3</div><div class="tl-card"><div class="tl-title">Contato multicanal intensificado</div><div class="tl-desc">D+1 task p/ negociadora · D+2 se sem retorno → ligação · D+3 persistência</div><span class="tl-badge badge-human">Task + sequência</span></div></div>
+    <div class="tl-item"><div class="tl-dot" style="background:#dbeafe;border-color:#3b82f6"></div><div class="tl-day" style="color:#1e40af">D+10</div><div class="tl-card"><div class="tl-title">Negativação + aviso ao cliente</div><div class="tl-desc">Task para operacionalizar a negativação + envio de template WhatsApp</div><span class="tl-badge badge-auto">Workflow + Task</span></div></div>
+  </div>
+
+  <div class="phase-header">Cobrança intermediária (D+31 a D+90)</div>
+  <div class="tl">
+    <div class="tl-item"><div class="tl-dot" style="background:#fef3c7;border-color:#f59e0b"></div><div class="tl-day" style="color:#92400e">D+31</div><div class="tl-card"><div class="tl-title">Migrar para negociadora especializada</div><div class="tl-desc">Workflow: "Change owner" automático para o grupo de negociadoras especializadas</div><span class="tl-badge badge-human">Reatribuição</span></div></div>
+    <div class="tl-item"><div class="tl-dot" style="background:#fef3c7;border-color:#f59e0b"></div><div class="tl-day" style="color:#92400e">D+89–92 <span style="font-weight:400;font-size:10px">(>R$30k)</span></div><div class="tl-card"><div class="tl-title">Alerta para analista responsável</div><div class="tl-desc">Task automática + notificação Teams via webhook no workflow</div><span class="tl-badge badge-auto">Webhook Teams</span></div></div>
+  </div>
+
+  <div class="phase-header">Notificação extrajudicial (D+91 a D+120)</div>
+  <div class="tl">
+    <div class="tl-item"><div class="tl-dot" style="background:#fee2e2;border-color:#ef4444"></div><div class="tl-day" style="color:#991b1b">D+92–100 <span style="font-weight:400;font-size:10px">(>R$30k)</span></div><div class="tl-card"><div class="tl-title">Task jurídico: emitir notificação extrajudicial</div><div class="tl-desc">Card deve ter dados do Lemit + histórico de acionamentos. NÃO gerar se último acionamento foi há mais de 3 dias.</div><span class="tl-badge badge-legal">Task jurídico</span></div></div>
+  </div>
+
+  <div class="phase-header">Análise comitê (D+121 a D+160)</div>
+  <div class="tl">
+    <div class="tl-item"><div class="tl-dot" style="background:#dcfce7;border-color:#22c55e"></div><div class="tl-day" style="color:#14532d">D+121–123</div><div class="tl-card"><div class="tl-title">Task análise financeira → Crédito</div><div class="tl-desc">Template com campos: CPRs, Bacen, Boa Vista, Cenprot, sazonalidade, atividade principal</div><span class="tl-badge badge-credit">Task crédito</span></div></div>
+    <div class="tl-item"><div class="tl-dot" style="background:#fee2e2;border-color:#ef4444"></div><div class="tl-day" style="color:#991b1b">D+123</div><div class="tl-card"><div class="tl-title">Task jurídico: parecer formal</div><div class="tl-desc">Após conclusão da task do crédito. Avaliar probabilidade de recuperação, bens, custo-benefício</div><span class="tl-badge badge-legal">Task jurídico</span></div></div>
+    <div class="tl-item"><div class="tl-dot" style="background:#fee2e2;border-color:#ef4444"></div><div class="tl-day" style="color:#991b1b">D+150–160</div><div class="tl-card"><div class="tl-title">E-mail para fundos + decisão judicialização</div><div class="tl-desc">Comitê consolidado. Casos abaixo de R$30k: renegociação com garantias até 365 dias</div><span class="tl-badge badge-legal">Manual</span></div></div>
+  </div>
+</div>
+
+<!-- FLUXO 2 -->
+<div id="panel-fluxo2" class="panel">
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:#1e40af"></div>Automação</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#92400e"></div>Ação humana</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#991b1b"></div>Jurídico</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#14532d"></div>Crédito / Comercial</div>
+  </div>
+
+  <div class="phase-header">Preventivo (antes do vencimento)</div>
+  <div class="tl">
+    <div class="tl-item"><div class="tl-dot" style="background:#dcfce7;border-color:#22c55e"></div><div class="tl-day" style="color:#14532d">D-50</div><div class="tl-card"><div class="tl-title">Task crédito: reanálise do cliente</div><div class="tl-desc">Template pré-preenchido com Bacen, CPRs, restritivos. Crédito valida risco de inadimplência</div><span class="tl-badge badge-credit">Task crédito</span></div></div>
+    <div class="tl-item"><div class="tl-dot" style="background:#dcfce7;border-color:#22c55e"></div><div class="tl-day" style="color:#14532d">D-30 e D-7</div><div class="tl-card"><div class="tl-title">Comercial como gerente de contas</div><div class="tl-desc">Contato amigável. Se crédito sinalizar risco → comercial sugere renegociação → deal passa para cobrança</div><span class="tl-badge badge-human">Task comercial</span></div></div>
+    <div class="tl-item"><div class="tl-dot" style="background:#fef3c7;border-color:#f59e0b"></div><div class="tl-day" style="color:#92400e">D0</div><div class="tl-card"><div class="tl-title">WhatsApp + ação humana</div><div class="tl-desc">Mesmo padrão do Fluxo 1</div><span class="tl-badge badge-human">Task + auto</span></div></div>
+  </div>
+
+  <div class="phase-header">Cobrança inicial (D+1 a D+20)</div>
+  <div class="tl">
+    <div class="tl-item"><div class="tl-dot" style="background:#fef3c7;border-color:#f59e0b"></div><div class="tl-day" style="color:#92400e">D+1 ao D+3</div><div class="tl-card"><div class="tl-title">Contato multicanal intensificado</div><div class="tl-desc">D+1 negociadora · D+2 ligação · D+3 multicanal</div><span class="tl-badge badge-human">Task + sequência</span></div></div>
+    <div class="tl-item"><div class="tl-dot" style="background:#dbeafe;border-color:#3b82f6"></div><div class="tl-day" style="color:#1e40af">D+10</div><div class="tl-card"><div class="tl-title">Negativação</div><div class="tl-desc">Workflow automático + task + template WhatsApp</div><span class="tl-badge badge-auto">Workflow</span></div></div>
+  </div>
+
+  <div class="phase-header">Notificação extrajudicial (D+21 a D+45)</div>
+  <div class="tl">
+    <div class="tl-item"><div class="tl-dot" style="background:#fee2e2;border-color:#ef4444"></div><div class="tl-day" style="color:#991b1b">D+31</div><div class="tl-card"><div class="tl-title">Task jurídico: notificação extrajudicial</div><div class="tl-desc">Documento gerado no sistema. Analista valida e escolhe canal (postal, WhatsApp, e-mail). Card deve ter dados Lemit + histórico</div><span class="tl-badge badge-legal">Task jurídico</span></div></div>
+  </div>
+
+  <div class="phase-header">Análise comitê e judicialização (D+45 a D+60)</div>
+  <div class="tl">
+    <div class="tl-item"><div class="tl-dot" style="background:#fee2e2;border-color:#ef4444"></div><div class="tl-day" style="color:#991b1b">D+45–60</div><div class="tl-card"><div class="tl-title">Comitê consolidado + e-mail para fundos</div><div class="tl-desc">Acionamentos + parecer crédito + análise jurídica. Decisão sobre judicialização</div><span class="tl-badge badge-legal">Manual</span></div></div>
+  </div>
+</div>
+
+<!-- PROPRIEDADES -->
+<div id="panel-props" class="panel">
+  <div class="section-title">No objeto Deal (contrato)</div>
+  <div class="props-grid">
+    <div class="prop-card"><div class="prop-name">Data de vencimento</div><div class="prop-type">Date — trigger dos workflows</div><div class="prop-desc">Campo central. Todos os timers partem daqui</div></div>
+    <div class="prop-card"><div class="prop-name">Tipo de operação</div><div class="prop-type">Dropdown — CCB / Estruturada</div><div class="prop-desc">Define qual fluxo será ativado</div></div>
+    <div class="prop-card"><div class="prop-name">Valor em atraso</div><div class="prop-type">Currency</div><div class="prop-desc">Atualizado pela cobrança. Usado no filtro >R$30k</div></div>
+    <div class="prop-card"><div class="prop-name">Flag >R$30k</div><div class="prop-type">Checkbox (booleano)</div><div class="prop-desc">Calculado automaticamente. Ativa etapas extrajudiciais</div></div>
+    <div class="prop-card"><div class="prop-name">Fase da régua</div><div class="prop-type">Dropdown</div><div class="prop-desc">Preventivo / Cobrança inicial / Intermediária / Extrajudicial / Comitê</div></div>
+    <div class="prop-card"><div class="prop-name">Data último acionamento</div><div class="prop-type">Date</div><div class="prop-desc">Condicional do jurídico: NÃO gera task se data > 3 dias atrás</div></div>
+    <div class="prop-card"><div class="prop-name">Operação de legado</div><div class="prop-type">Checkbox</div><div class="prop-desc">Vencimentos anteriores a dez/2024. Excluir dos workflows</div></div>
+    <div class="prop-card"><div class="prop-name">Parcelas vencidas</div><div class="prop-type">Number</div><div class="prop-desc">Trigger da notificação extrajudicial: 3 parcelas em atraso</div></div>
+  </div>
+
+  <div class="section-title" style="margin-top:14px">No objeto Contato</div>
+  <div class="props-grid">
+    <div class="prop-card"><div class="prop-name">Analista responsável</div><div class="prop-type">HubSpot User</div><div class="prop-desc">Recebe os alertas e tasks dos marcos críticos</div></div>
+    <div class="prop-card"><div class="prop-name">Qualificação Nagro</div><div class="prop-type">Multi-line text</div><div class="prop-desc">Preenchida pelo comercial. Atualizada no D+240</div></div>
+    <div class="prop-card"><div class="prop-name">Dados Lemit</div><div class="prop-type">Multi-line text</div><div class="prop-desc">Copiado para o card antes do envio ao jurídico</div></div>
+    <div class="prop-card"><div class="prop-name">Resumo acionamentos</div><div class="prop-type">Multi-line text</div><div class="prop-desc">Atualizado manualmente ou via nota. Visível no card do jurídico</div></div>
+  </div>
+</div>
+
+<!-- INTEGRAÇÕES -->
+<div id="panel-integracoes" class="panel">
+  <div class="int-row">
+    <div class="int-icon" style="background:#dbeafe">💬</div>
+    <div>
+      <div class="int-name">WhatsApp (Zenvia / Notificame)</div>
+      <div class="int-desc">Templates em cada marco: D-7, D0, D+1, D+10. Todos precisam estar aprovados no Meta antes de configurar os workflows.</div>
+      <span class="int-status status-ok">Validar templates</span>
+    </div>
+  </div>
+  <div class="int-row">
+    <div class="int-icon" style="background:#fef3c7">📣</div>
+    <div>
+      <div class="int-name">Microsoft Teams</div>
+      <div class="int-desc">Webhook no workflow do D+89 para alertar a analista. Nativo no HubSpot via ação "Send webhook".</div>
+      <span class="int-status status-ok">Nativo no HubSpot</span>
+    </div>
+  </div>
+  <div class="int-row">
+    <div class="int-icon" style="background:#dcfce7">🏦</div>
+    <div>
+      <div class="int-name">AgRisk (busca patrimonial)</div>
+      <div class="int-desc">Pendente: automática ou por flag? Só >R$30k? Dados como texto no card ou anexo? Custo por consulta?</div>
+      <span class="int-status status-pending">Pendente decisão</span>
+    </div>
+  </div>
+  <div class="int-row">
+    <div class="int-icon" style="background:#fee2e2">📋</div>
+    <div>
+      <div class="int-name">Boa Vista / Cenprot</div>
+      <div class="int-desc">Consultas nos marcos D+92 e D+121. Integração via API ou preenchimento manual pela analista?</div>
+      <span class="int-status status-pending">Pendente decisão</span>
+    </div>
+  </div>
+  <div class="int-row">
+    <div class="int-icon" style="background:#f3f4f6">📄</div>
+    <div>
+      <div class="int-name">Geração de documentos jurídicos</div>
+      <div class="int-desc">Notificação extrajudicial precisa ser gerada dentro do sistema. Definir ferramenta: PandaDoc, DocuSign ou outro.</div>
+      <span class="int-status status-pending">Definir ferramenta</span>
+    </div>
+  </div>
+</div>
+
+<script>
+function show(tab, btn) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('panel-' + tab).classList.add('active');
+  btn.classList.add('active');
+}
+</script>
+</body>
+</html>
